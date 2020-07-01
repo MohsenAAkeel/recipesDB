@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import readBa
 from parseIngs import *
+from sqlprep import *
 
 sites = {'bonappetit':readBa.readBa}
 
@@ -27,10 +28,12 @@ def readUrl(url):
 
 def recipeApp(url):
     parsedObj, site = readUrl(url)
-
+    
     title, ingObj, steps = sites.get(site)(parsedObj)
-
+    cat = 'breakfast'
     ings = parseIngs(ingObj)
+
+    mysqlExport([title, site, cat, ings, steps])
 
     
 
