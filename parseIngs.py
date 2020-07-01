@@ -15,10 +15,8 @@ def readItem(item):
         elif ord(item[i]) > 187 and ord(item[i]) < 191:
             frac += item[i]
         elif ord(item[i]) == 32:
-            continue
+            pass
         else:
-            if i > 0:
-                i+=1
             break
         i+=1
         
@@ -29,7 +27,7 @@ def readItem(item):
     #collect the ingeredient
     while i < len(item):
         ing += item[i]
-        if ing in measures:
+        if ing.lower() in measures:
             amt += ing
             ing = ''
         i+=1

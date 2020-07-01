@@ -28,11 +28,12 @@ def readUrl(url):
 def recipeApp(url):
     parsedObj, site = readUrl(url)
 
-    title, ings, steps = sites.get(site)(parsedObj)
+    title, ingObj, steps = sites.get(site)(parsedObj)
 
-    ingObj = parseIngs(ings)
+    ings = parseIngs(ingObj)
 
-    pring(ingObj)
+    
+
     
     
     
