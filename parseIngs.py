@@ -38,7 +38,6 @@ def readItem(item):
 def parseIngs(ingList):
     ingObj = []
     for item in ingList:
-        print(item)
         ingObj.append(readItem(item))
         
     return ingObj
