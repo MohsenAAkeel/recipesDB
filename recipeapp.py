@@ -1,40 +1,51 @@
-import regex
+import re
 import requests
 from bs4 import BeautifulSoup
 import readBa
 from parseIngs import *
-#from sqlprep import *
+from sqlprep import *
 
 sites = {'bonappetit':readBa.readBa}
 
-def readUrlForBa(obj):
+def readForBa(obj):
     title = obj.find('title')
     if(title):
-        read = regex.search('Bon Appetit', title.text)
+        read = re.search('Bon Appetit', title.text)
         if(read):
             return True
     return False
-        
+
+
+"""
+Method for retrieval of url data in bs4 format
+@params: 
+	url - recipe source site
+@return: 
+	 parsed url and string containing the sites name
+
+"""
 def readUrl(url):
     page = requests.get(url)
     parsed = BeautifulSoup(page.content, 'html.parser')
     site = ''
-    #Check if url is to bonapetit
-    if(readUrlForBa(parsed)):
+
+    #check url source
+    if(readForBa(parsed)):
         site = 'bonappetit'
 
     return parsed, site
-    
 
-def recipeApp(url):
+
+
+def recipeApp(url, catagory):
     parsedObj, site = readUrl(url)
     
     title, ingObj, steps = sites.get(site)(parsedObj)
-    cat = 'breakfast'
+    cat = catagory
     ings = parseIngs(ingObj)
-
-    #mysqlExport([title, site, cat, ings, steps])
-
+    
+    mysqlExport([title, site, cat, ings, steps])
+    
     for x in ings:
         print(x)
 
