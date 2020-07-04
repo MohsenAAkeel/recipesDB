@@ -37,14 +37,13 @@ def readUrl(url):
 
 
 
-def recipeApp(url, catagory):
+def recipeApp(url, cat):
     parsedObj, site = readUrl(url)
     
     title, ingObj, steps = sites.get(site)(parsedObj)
-    cat = catagory
     ings = parseIngs(ingObj)
     
-    mysqlExport([title, site, cat, ings, steps])
+    mysqlExport([title, url, cat, ings, steps])
     
     for x in ings:
         print(x)

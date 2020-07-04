@@ -1,8 +1,8 @@
 import mysql.connector
 from mysql.connector import errorcode
-import config.py
-import sqlutils.py
-import utils.py
+from config import *
+#import sqlutils.py
+#import utils.py
 
 
 """
@@ -12,8 +12,8 @@ Method for adding values to the "recipes" table
 """
 def errorOut(errval):
     ERROR_CODES = {
-        0 : "No error"
-        'DUPLICATE_RECIPE_NAME' : "Recipe exists in DB"
+        0 : "No error",
+        'DUPLICATE_RECIPE_NAME' : "Recipe exists in DB",
         2 : ""
     }
     print(f"Error: {ERROR_CODES[errval]}")
@@ -31,10 +31,10 @@ with the matching name.
 """
 def getRecId(name, cursor):
     try:
-        query = "SELECT recId FROM recipes WHERE name = %s;")
-        cursor.execute(query, (name))
+        query = "SELECT recId FROM recipes WHERE name = %s;"
+        cursor.execute(query, (name,))
     except mysql.connector.Error as err:
-        print( "ERROR: " + err)
+        print( "ERROR: {}".format(err))
     return cursor.fetchall()[0][0]
 
 
@@ -44,16 +44,22 @@ Method for adding values to the "recipes" table
 @params: rList - recipe list containing 3 values: name, url, and catagory
 @returns: integer value representing the error code generated
 """
-def addRecipe(rList):
+def addRecipe(rList, cursor, cnx):
+    data_recipe = {
+        'name':rList[0],
+        'source':rList[1],
+        'cat':rList[2]
+    }
+
     """
     Ensure this is not a duplicate by checking the database
     for the title
     """
     try:
         query = ("SELECT * FROM recipes WHERE name = %s;")
-        cursor.execute(query, rList[0])
+        cursor.execute(query, (rList[0],))
     except mysql.connector.Error as err:
-        print( "ERROR: " + err)
+        print( "ERROR: {}".format(err))
     
     if not cursor:
         return None, 'DUPLICATE_RECIPE_NAME'
@@ -67,14 +73,15 @@ def addRecipe(rList):
     rList[0] is the name, rList[1] is the URL, rList[2] is
     the category
     """
+    add_recipe = ("INSERT INTO recipes (name, source, cat) VALUES (%(name)s, %(source)s, %(cat)s);")
+
     try:
-    	add_recipe = (f"INSERT INTO recipes VALUES (%s, %s, %s);")
-    	cursor.execute(add_recipe, (rList[0], rList[1], rList[2]))
-        return getRecId(rList[0], cursor), 0
+        cursor.execute(add_recipe, data_recipe)
+        cnx.commit()
     except mysql.connector.Error as err:
-        print( "ERROR: " + err)
+        print( "ERROR: {}".format(err))
 
-
+    return getRecId(rList[0], cursor), 0
 
 """
 helper function
@@ -84,9 +91,9 @@ a matching name
 def getItemId(name, cursor):
     try:
         itemQuery = ("SELECT itemID FROM items WHERE name = %s;")
-        cursor.execute(itemQuery, (e))
+        cursor.execute(itemQuery, (name,))
     except mysql.connector.Error as err:
-        print( "ERROR: " + err)
+        print( "ERROR: {}".format(err))
 
 
     
@@ -94,12 +101,13 @@ def getItemId(name, cursor):
 helper function
 adds a record to the :items: table 
 """
-def addItem(item, cursor):
+def addItem(item, cursor, cnx):
     try:
         addAction = ("INSERT INTO items (name) VALUES (%s);")
-        cursor.execute(addAction, (item))
+        cursor.execute(addAction, (item,))
+        cnx.commit()
     except mysql.connector.Error as err:
-        print( "ERROR: " + err)
+        print( "ERROR: {}".format(err))
         
     
 """
@@ -107,7 +115,7 @@ Method for adding values to the "recipes" table
 @params: recipeList - list containing 3 values: title, url, and catagory
 @returns: integer value representing the error code generated
 """
-def addIngs(recId, ingList, cursor):
+def addIngs(recId, ingList, cursor, cnx):
 
     ingRecs = []
     
@@ -115,24 +123,30 @@ def addIngs(recId, ingList, cursor):
     #ingList holds the ingredients
     for e in ingList:
         #e[0] = amount
-        #e[1] = item
-        if(not getItemId(e[1], cursor))
-        itemId = cursor.fetchAll()
-
-        if not itemId:
-            addItem(e[1], cursor)
+        #e[1] = name
+        getItemId(e[1], cursor)
+        if cursor.rowcount == 0:
+            addItem(e[1], cursor, cnx)
             getItemId(e[1], cursor)
-            itemId = cursor.fetchAll()[0][0]
+            
+        itemId = cursor.fetchall()[0][0]        
+
+        data_ing = {
+            'recId' : recId,
+            'amt' : e[0],
+            'itemId' : itemId
+        }
             
         #itemId was collected and data can be input into "items" table
-        ingRecs.append(["INSERT INTO ingredients VALUES (%i, %s, %i);",
-                        (recId, e, itemId)])
+        ingRecs.append(["INSERT INTO ingredients (recId, amt, itemId)  VALUES (%(recId)s, %(amt)s, %(itemId)s);",
+                        data_ing])
 
     for ing in ingRecs:
         try:
             cursor.execute(ing[0], ing[1])
+            cnx.commit()
         except mysql.connector.Error as err:
-            print( "ERROR: " + err)
+            print( "ERROR: {}".format(err))
             
     return 0
 
@@ -143,18 +157,19 @@ Method for adding values to the :recipes: table
 @params: recipeList - list containing 3 values: title, url, and catagory
 @returns: integer value representing the error code generated
 """
-def addSteps(recId, steps, cursor):
+def addSteps(recId, steps, cursor, cnx):
     #will hold list of sql commands to execute
     instrRecs = []
     
     for i in range(len(steps)):
-        instrRecs.append(["INSERT INTO process VALUES (%i, %i, %s);", (recId, i, steps[i])])
+        instrRecs.append(["INSERT INTO process (recId, step, instr) VALUES (%s, %s, %s);", (recId, i, steps[i])])
 
     try:
-        for e in instr:
+        for e in instrRecs:
             cursor.execute(e[0], e[1])
+            cnx.commit()
     except mysql.connector.Error as err:
-        print( "ERROR: " + err)
+        print( "ERROR: {}".format(err))
         
     return 0
 
@@ -189,12 +204,12 @@ def mysqlExport(data):
 
     #create the cursor - allows for execution of mysql commands
     #through python
-    cursor = cnx.cursor
+    cursor = cnx.cursor(buffered = True)
 
     """
     add the record to the :recipes: table
     """
-    recId, errval = addRecipe(data[:3])
+    recId, errval = addRecipe(data[:3], cursor, cnx)
     if errval != 0:
         errorOut[errval]
         return
@@ -206,12 +221,12 @@ def mysqlExport(data):
         data[3][1] holds the name
     Want to only send a list of names to add
     """
-    errval = addIngs(recId, data[3], cursor)
+    errval = addIngs(recId, data[3], cursor, cnx)
     if errval != 0:
         errorOut[errval]
         return
 
-    errval = addSteps(recId, data[4], cursor)
+    errval = addSteps(recId, data[4], cursor, cnx)
     
 
 
